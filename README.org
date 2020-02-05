@@ -1,0 +1,68 @@
+* toggle-leds
+Toggle LEDs using triggers. Made for discrete notifications (e.g. while sitting
+in a lecture hall at [[https://cfgmgmtcamp.eu][cfgmgmtcamp]] :).
+
+** Usage
+To blink the caps lock trigger on a ThinkPad when ~host.example.org~ responds to
+ping requests:
+#+begin_src bash
+until ping -w2 -c1 -D host.example.org &>/dev/null; do
+  echo -n .
+  sleep 1
+done && while sleep 0.5; do
+  ./build/toggle-leds input4::capslock
+done
+#+end_src
+
+In the above we send a single ICMP packet (~-c1~), exit after a deadline of 2
+seconds (~-w2~) and use quiet mode (~-q~) and throw ~stdout~ and ~stderr~ away
+(~&>/dev/null~). Until ~ping~ exits with an exit code of ~0~ we'll print a
+single dot with no newline (~echo -n .~) and sleep 1 second (which also means
+that we have an easier time killing the process if we want to cancel it).
+
+When ~ping~ exits with ~0~ we'll toggle the ~input4::capslock~ LED every ~0.5~
+seconds until terminated.
+
+** Available LEDs
+The available LEDs differ between platforms. On a ThinkPad A485 the following
+are available:
+
+#+begin_example
+$ find /sys/class/leds/ -mindepth 1 -maxdepth 1 -type d -follow -exec basename {} \; | sort
+input4::capslock
+input4::numlock
+input4::scrolllock
+input8::capslock
+input8::compose
+input8::kana
+input8::numlock
+input8::scrolllock
+phy0-led
+platform::micmute
+platform::mute
+tpacpi::kbd_backlight
+tpacpi::power
+tpacpi::standby
+tpacpi::thinklight
+tpacpi::thinkvantage
+#+end_example
+
+Note that not all of these actually work; Lenovo sadly decided to do away with
+the awesome ~thinklight~...
+
+To show a list of LEDs on your platform, run the following command:
+#+begin_src sh
+find /sys/class/leds/ -mindepth 1 -maxdepth 1 -type d -follow -exec basename {} \; |
+  sort
+#+end_src
+
+** Notes
+The binary needs read/write access to the ~brightness~ file and read access to
+the ~max_brightness~ file for LED devices under ~/sys/class/leds/~ to work. The
+~Makefile~ does this automatically, but for posterity this is the command you
+need to run — ...but only if you understand what it actually does; ~setuid~ is
+dangerous!
+
+#+begin_src sh
+setuid u+s ./build/toggle-leds
+#+end_src
